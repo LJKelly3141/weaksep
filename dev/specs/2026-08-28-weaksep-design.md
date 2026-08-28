@@ -33,7 +33,8 @@ All settled 2026-08-28 by Logan Kelly.
 | Repository location | `/Users/logankelly/Developer/weaksep`, outside Sync.com |
 | Scope of v0.1 | All four methods in one release |
 | API shape | Single entry point with `method =`, building blocks exported separately |
-| MIP solver | `lpSolve` in `Imports`, faster solvers in `Suggests` |
+| MIP solver | ~~`lpSolve` in `Imports`, faster solvers in `Suggests`~~ **Reversed 2026-08-28; see section 3a** |
+| MIP solver, revised | Prefer `highs`, then `Rglpk`, then `lpSolve` with a warning |
 | Axiom implementation | Native, in `src/`. No runtime dependency on `revpref` or `revealedPrefs` |
 | Licence | GPL (>= 3) |
 | Divisia index | Own implementation, ported from the prototype |
@@ -55,6 +56,32 @@ LinkingTo:  Rcpp
 Suggests:   revpref, revealedPrefs, highs, Rglpk, IndexNumR,
             testthat (>= 3.0.0), knitr, rmarkdown, covr, spelling
 ```
+
+### 3a. The solver decision, reversed
+
+The original decision put `lpSolve` in `Imports` as the default because it is the
+only candidate with no system requirements, so the MIP method would work on a
+bare install. Measured on the implemented CS.WS program, that was wrong, and not
+by a little.
+
+On blockwise Cobb-Douglas data that is separable by construction, `lpSolve`
+returns **infeasible** from twelve observations upward. `Rglpk` and `highs`
+return feasible on the identical model at every size tested, and the certificate
+they return verifies against Varian's conditions. `lpSolve` is not slow here, it
+is **wrong**, and it is wrong in the worst possible direction: an exact test
+silently reporting "not separable" when the answer is "separable".
+
+Revised policy, implemented in `choose_solver()` and reported by
+`mip_solvers()`: prefer `highs`, then `Rglpk`, and fall back to `lpSolve` only
+when neither is installed, with a warning naming the problem. `lpSolve` stays in
+`Imports` because `afriat_subutility()` uses it for pure linear programmes, where
+it is reliable.
+
+The general lesson is worth keeping: a dependency chosen for installability
+rather than correctness has to be validated against a solver chosen for
+correctness, or the installability is worthless.
+
+### 3b. Original reasoning, retained for the record
 
 `lpSolve` 5.6.23 declares no `SystemRequirements` and bundles its own C source,
 so the MIP method works on a bare install. `highs` 1.14.0-2 requires Bash,

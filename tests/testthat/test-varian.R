@@ -54,10 +54,13 @@ test_that("weak_separability accepts a raw long data frame", {
 
 test_that("unimplemented methods fail loudly rather than silently", {
   d <- as_demand(blockwise(), obs, good, price, quantity)
-  for (m in c("sw", "fw", "mip")) {
+  for (m in c("sw", "fw")) {
     expect_error(weak_separability(d, list(block = c("a", "b")), method = m),
                  "not yet implemented")
   }
+  ## "mip" is implemented; it must not be caught by this branch.
+  expect_error(weak_separability(d, list(block = c("a", "b")), method = "mip"),
+               NA)
 })
 
 test_that("verbose emits stage progress and the default is quiet", {

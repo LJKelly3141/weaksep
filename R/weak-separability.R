@@ -87,9 +87,20 @@ weak_separability <- function(x, partition,
 
   pt <- resolve_partition(partition, x$goods)
 
-  if (method != "varian") {
+  if (method %in% c("sw", "fw")) {
     stop("method = ", sQuote(method), " is not yet implemented. ",
-         "Only \"varian\" is available in this version.", call. = FALSE)
+         "Available: \"varian\" and \"mip\".", call. = FALSE)
+  }
+
+  if (method == "mip") {
+    res <- mip_stages(x, pt, efficiency, solver, verbose)
+    return(new_weaksep_test(
+      separable = res$separable, conditions = "necessary and sufficient",
+      method = method, efficiency = efficiency, stages = res$stages,
+      ccei = res$ccei, partition = partition,
+      n_obs = nrow(x$p), n_goods = ncol(x$p),
+      solver_status = res$solver_status, call = cl
+    ))
   }
 
   stage2 <- switch(subutility,
@@ -104,4 +115,70 @@ weak_separability <- function(x, partition,
     partition = partition, n_obs = nrow(x$p), n_goods = ncol(x$p),
     solver_status = NULL, call = cl
   )
+}
+
+## Driver for method = "mip". Runs the two cheap necessary conditions first,
+## both because they short-circuit an expensive solve and because they are
+## informative diagnostics, then the exact integer programme.
+mip_stages <- function(d, pt, efficiency, solver, verbose) {
+  group_names <- setdiff(names(pt), ".outside")
+  if (length(group_names) != 1L) {
+    stop("method = \"mip\" tests one candidate group against all other goods, ",
+         "the two-way split of Cherchye et al. (2015). Got ",
+         length(group_names), " groups. Use method = \"varian\" for a finer ",
+         "partition, or test one group at a time.", call. = FALSE)
+  }
+  if (!length(pt$.outside)) {
+    stop("method = \"mip\" needs at least one good outside the group; ",
+         "separability of the whole bundle is vacuous.", call. = FALSE)
+  }
+  if (!isTRUE(all.equal(efficiency, 1))) {
+    stop("method = \"mip\" is implemented only at efficiency = 1. The CS.WS ",
+         "program of Cherchye et al. (2015) carries no efficiency parameter, ",
+         "and this package will not invent one. Use method = \"varian\" for ",
+         "efficiency < 1.", call. = FALSE)
+  }
+
+  g <- group_names[1L]
+  yi <- pt[[g]]
+  xi <- pt$.outside
+  qy <- d$p[, yi, drop = FALSE]; y <- d$q[, yi, drop = FALSE]
+  px <- d$p[, xi, drop = FALSE]; x <- d$q[, xi, drop = FALSE]
+
+  stages <- vector("list", 3L)
+  not_attempted <- function(nm) {
+    list(name = nm, pass = FALSE, ccei = NA_real_, detail = "not attempted")
+  }
+
+  if (verbose) message("Stage 1: full-system GARP")
+  g1 <- garp(d$p, d$q, efficiency = efficiency)
+  cc1 <- ccei(d$p, d$q)
+  stages[[1]] <- list(name = "Stage 1: full-system GARP", pass = g1$consistent,
+                      ccei = cc1, detail = "necessary")
+  if (!g1$consistent) {
+    stages[[2]] <- not_attempted("Stage 2: subgroup GARP")
+    stages[[3]] <- not_attempted("Stage 3: CS.WS integer programme")
+    return(list(separable = FALSE, stages = stages, ccei = cc1,
+                solver_status = NULL))
+  }
+
+  if (verbose) message("Stage 2: subgroup GARP")
+  g2 <- garp(qy, y, efficiency = efficiency)
+  cc2 <- ccei(qy, y)
+  stages[[2]] <- list(name = "Stage 2: subgroup GARP", pass = g2$consistent,
+                      ccei = cc2, detail = "necessary")
+  if (!g2$consistent) {
+    stages[[3]] <- not_attempted("Stage 3: CS.WS integer programme")
+    return(list(separable = FALSE, stages = stages, ccei = cc1,
+                solver_status = NULL))
+  }
+
+  if (verbose) message("Stage 3: CS.WS integer programme")
+  m <- mip_separability(px, x, qy, y, solver = solver)
+  stages[[3]] <- list(name = "Stage 3: CS.WS integer programme",
+                      pass = m$feasible, ccei = NA_real_,
+                      detail = paste0(m$n_binary, " binaries, ",
+                                      m$n_con, " constraints"))
+  list(separable = m$feasible, stages = stages, ccei = cc1,
+       solver_status = paste0(m$solver, ", status ", m$status))
 }
