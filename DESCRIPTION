@@ -2,7 +2,7 @@ Package: weaksep
 Type: Package
 Title: Nonparametric Revealed Preference Tests of Weak Separability
 Version: 0.0.0.9000
-Authors@R: person("Logan", "Kelly", email = "PLACEHOLDER@EXAMPLE.COM",
+Authors@R: person("Logan", "Kelly", email = "logan.kelly@uwrf.edu",
                   role = c("aut", "cre"))
 Description: Implements nonparametric revealed preference tests of weak
     separability for finite sets of price and quantity observations. Provides

@@ -129,3 +129,67 @@ test_that("an explicitly requested missing solver errors clearly", {
           "Rglpk is installed, cannot test the missing-solver path")
   expect_error(weaksep:::choose_solver("Rglpk"), "not installed")
 })
+
+## Regression tests for a bug found on 2026-08-28.
+##
+## The program admits a degenerate solution S = 0, delta = 0, X = 1 that
+## satisfies every constraint. It is excluded only by delta >= delta_min, so if
+## delta_min falls inside the solver's feasibility tolerance the solver accepts
+## the degenerate point and the test reports EVERYTHING as separable. At the
+## original delta_min of 1e-6, HiGHS did exactly that on 100 percent of
+## GARP-violating datasets while GLPK rejected all of them.
+
+test_that("GARP-violating data is infeasible: it cannot be rationalised at all", {
+  skip_without_solver()
+  ## Data failing full-system GARP is not rationalisable by ANY utility
+  ## function, weakly separable or otherwise, so the program must be infeasible.
+  ## This is the check that exposed the degenerate solution.
+  n <- 0
+  for (s in 1:12) {
+    d <- as_demand(sim_random(16, 5, seed = s), obs, good, price, quantity)
+    if (garp(d$p, d$q)$consistent) next
+    n <- n + 1
+    yi <- match(blk, d$goods)
+    xi <- setdiff(seq_along(d$goods), yi)
+    m <- weaksep:::mip_separability(d$p[, xi, drop = FALSE], d$q[, xi, drop = FALSE],
+                                    d$p[, yi, drop = FALSE], d$q[, yi, drop = FALSE])
+    expect_false(m$feasible, info = paste("seed", s))
+  }
+  expect_gt(n, 0)
+})
+
+test_that("the two reliable solvers agree", {
+  skip_if_not(requireNamespace("highs", quietly = TRUE) &&
+                requireNamespace("Rglpk", quietly = TRUE),
+              "need both highs and Rglpk")
+  skip_on_cran()
+  ## Cross-solver agreement is the cheapest guard against exactly the class of
+  ## bug above: one backend silently accepting what another proves infeasible.
+  for (s in 1:6) {
+    for (gen in list(function(z) sim_cobb_douglas(14, 5, blocks = list(m = blk), seed = z),
+                     function(z) sim_random(14, 5, seed = z))) {
+      d <- as_demand(gen(s), obs, good, price, quantity)
+      yi <- match(blk, d$goods)
+      xi <- setdiff(seq_along(d$goods), yi)
+      args <- list(d$p[, xi, drop = FALSE], d$q[, xi, drop = FALSE],
+                   d$p[, yi, drop = FALSE], d$q[, yi, drop = FALSE])
+      a <- do.call(weaksep:::mip_separability, c(args, list(solver = "highs")))
+      b <- do.call(weaksep:::mip_separability, c(args, list(solver = "Rglpk")))
+      expect_identical(a$feasible, b$feasible, info = paste("seed", s))
+    }
+  }
+})
+
+test_that("a dangerously small tolerance warns", {
+  skip_without_solver()
+  d <- as_demand(sim_cobb_douglas(8, 5, blocks = list(m = blk), seed = 1),
+                 obs, good, price, quantity)
+  yi <- match(blk, d$goods)
+  xi <- setdiff(seq_along(d$goods), yi)
+  expect_warning(
+    weaksep:::mip_separability(d$p[, xi, drop = FALSE], d$q[, xi, drop = FALSE],
+                               d$p[, yi, drop = FALSE], d$q[, yi, drop = FALSE],
+                               delta_min = 1e-9),
+    "feasibility tolerance"
+  )
+})

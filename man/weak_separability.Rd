@@ -11,6 +11,7 @@ weak_separability(
   efficiency = 1,
   subutility = c("afriat", "divisia"),
   solver = NULL,
+  adjust = NULL,
   verbose = FALSE
 )
 }

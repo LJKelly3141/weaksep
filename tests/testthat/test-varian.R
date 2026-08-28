@@ -54,13 +54,16 @@ test_that("weak_separability accepts a raw long data frame", {
 
 test_that("unimplemented methods fail loudly rather than silently", {
   d <- as_demand(blockwise(), obs, good, price, quantity)
-  for (m in c("sw", "fw")) {
-    expect_error(weak_separability(d, list(block = c("a", "b")), method = m),
-                 "not yet implemented")
+  expect_error(weak_separability(d, list(block = c("a", "b")), method = "fw"),
+               "not yet implemented")
+  ## "mip" and "sw" are implemented; neither may be caught by that branch.
+  skip_if_not(any(vapply(c("highs", "Rglpk"),
+                         function(s) requireNamespace(s, quietly = TRUE),
+                         logical(1))),
+              "no reliable MILP solver installed")
+  for (m in c("mip", "sw")) {
+    expect_error(weak_separability(d, list(block = c("a", "b")), method = m), NA)
   }
-  ## "mip" is implemented; it must not be caught by this branch.
-  expect_error(weak_separability(d, list(block = c("a", "b")), method = "mip"),
-               NA)
 })
 
 test_that("verbose emits stage progress and the default is quiet", {
