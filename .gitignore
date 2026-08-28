@@ -1,0 +1,24 @@
+# Third-party reference source. Reproduce with the script in
+# references/code/README.md. The two README.md files ARE tracked.
+references/code/*
+!references/code/README.md
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.Renviron
+
+# Build artefacts
+*.tar.gz
+*.Rcheck/
+src/*.o
+src/*.so
+src/*.dll
+inst/doc
+docs/
+
+# macOS
+.DS_Store
