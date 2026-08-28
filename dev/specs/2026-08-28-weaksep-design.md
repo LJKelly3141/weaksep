@@ -173,28 +173,115 @@ Varian (1983), necessary conditions. Grounded in working prototype code.
    aggregate price as group expenditure divided by the index quantity, and test
    GARP on the reduced system.
 
-Necessary but not sufficient as implemented, because Stage 2 produces one
-admissible solution to the Afriat system rather than searching over all of them.
-The package documentation must say so plainly, and `print.weaksep_test()` must
-label the result as necessary-only.
+**Sufficient but not necessary**, and the direction matters. Corrected
+2026-08-28 after reading Swofford and Whitney (1994, pp. 238-239), who state it
+directly: "this two-stage procedure is a sufficient but not necessary condition
+for weak separability because there can be values other than the Afriat numbers
+that are solutions for (8b)." They quote Varian to the same effect: "If the data
+do not pass this test, the separability structure may yet be OK, since there may
+be some other utility representation than the Afriat representation that will
+work."
+
+Three conditions must be kept apart, and the package must not conflate them:
+
+| Condition | Status |
+|---|---|
+| Subgroup GARP, and GARP on the full undivided system | Necessary |
+| Varian's two-stage test with Afriat numbers substituted | Sufficient, not necessary |
+| Varian (1983) inequality system (8) solved exactly | Necessary and sufficient |
+
+This is what makes the Barnett and Choi (1989) result coherent. A test that
+over-rejects is too strict, so passing is conclusive and failing is not. A
+`separable = FALSE` from `method = "varian"` means "not established", never
+"shown to be non-separable", and `print()` must say so in those terms.
 
 ### 7.2 `method = "sw"`
 
-Swofford and Whitney (1994), a revealed preference test for weakly separable
-utility maximization permitting incomplete adjustment within the period.
+Swofford and Whitney (1994). A necessary and sufficient test that additionally
+permits incomplete adjustment of subgroup expenditure within the period.
+**Unblocked**: full text held at `references/papers/`, verified against the
+published article, Journal of Econometrics 60 (1994) 235-249.
 
-`[VERIFY: exact algorithm. Obtain full text of Swofford & Whitney (1994),`
-`doi:10.1016/0304-4076(94)90045-0, before implementing. Do not implement from`
-`secondary descriptions.]`
+Varian (1983) theorem 3 condition (2) is the nonlinear system, in the paper's
+notation with `t` and `mu` the multipliers on the outer and inner problems:
+
+```
+(8a)  U_i <= U_j + t_j p_j (x_i - x_j) + (t_j / mu_j)(V_i - V_j)
+(8b)  V_i <= V_j + mu_j r_j (m_i - m_j)                            t, mu > 0
+```
+
+Swofford and Whitney generalise it by adding an expenditure constraint
+`r'm = E` to the consumer's problem, whose shadow price `theta` is zero exactly
+when subgroup expenditure is optimally adjusted. Writing `xi = (t + theta)/mu`,
+their test is the program
+
+```
+min  F = sum_i (t_i - mu_i * xi_i)
+s.t. (12a)  U_i <= U_j + t_j p_j (x_i - x_j) + xi_j (V_i - V_j)
+     (12b)  V_i <= V_j + mu_j r_j (m_i - m_j)
+```
+
+A feasible solution means preferences are weakly separable in the subgroup. If
+the objective additionally minimises to zero, then `theta = 0` in every period
+and adjustment is complete, recovering Varian's (8).
+
+This is a nonlinear program: `xi_j` multiplies the unknown `V_i` in (12a).
+Swofford and Whitney solved it with the IMSL `NCONF` routine and reported that
+40 observations gave 200 unknowns in 3,120 inequality constraints, while 62
+observations gave 310 unknowns in 7,564 constraints, which exceeded the memory
+of a CRAY X-MP/24. They therefore split their sample into two overlapping
+ten-year windows rather than solving it whole.
+
+**Implementation consequence.** A naive port will not scale, and the package
+must not pretend otherwise. Two options, to be settled when this method is
+built: use a general nonlinear solver and document the observation limit
+honestly, or reformulate as a mixed integer program in the manner of Cherchye et
+al. (2015), in which case `sw` and `mip` should share a backend. The second is
+more attractive and is the reason the solver abstraction exists.
 
 ### 7.3 `method = "fw"`
 
-Fleissig and Whitney (2008), necessary and sufficient conditions, with the
-sequential algorithm introduced in Fleissig and Whitney (2003).
+**Unblocked.** Both papers held at `references/papers/`. Corrected 2026-08-28
+after reading Fleissig and Whitney (2008): the two papers do different things and
+the earlier version of this section conflated them.
 
-`[VERIFY: exact algorithm. Obtain full text of Fleissig & Whitney (2003),`
-`doi:10.1198/073500102288618838, and Fleissig & Whitney (2008),`
-`doi:10.1016/j.jeconom.2008.09.024, before implementing.]`
+**Fleissig and Whitney (2003) is what `method = "fw"` implements.** A
+nonstochastic linear programme. Take the chained Tornqvist index of the subgroup
+as the candidate subutility, allow minimal signed deviations from it and from the
+adding-up implied multiplier, minimise the total deviation, then test GARP on the
+reduced system. Sufficient, not necessary, but with far less bias than Varian's
+Afriat numbers. See `dev/notes/test-methods.md` section 3 for the full
+programme.
+
+**Fleissig and Whitney (2008) is a stochastic test and is out of scope for
+`method = "fw"`.** Its contribution is that when data are measured with error,
+Varian's necessary and sufficient conditions must *additionally* satisfy a set of
+stochastic Afriat inequalities, so all three inequality systems have to be
+evaluated jointly. The test statistic is the smallest error admitting a solution
+to all three, with a Monte Carlo simulation supplying its distribution, and they
+give both a least-lower-bound and an upper-bound variant. This requires
+**nonlinear programming**.
+
+**Design consequence.** Implementing FW (2008) literally would reintroduce the
+nonlinear solver that the `sw` decision removed. It should not be implemented
+literally. Cherchye et al. cover the same ground with `OP.WS`, the integer
+programme with a scalar slack `F` whose optimum satisfies `F* <= 0` if and only
+if the data are weakly separable, combined with simulation of the error
+distribution. That is deterministic, globally optimal, and reuses the MIP backend.
+
+Stochastic testing is therefore deferred to a later version and, when it lands,
+is built on `OP.WS` rather than on FW (2008)'s nonlinear system. FW (2008) is
+cited as the predecessor and the package documentation should say why it is not
+the implementation route.
+
+One useful clarification from the same paper, worth carrying into the
+documentation: Varian (1983) himself gave *two* tests, a two-step linear one and
+a nonlinear one. "If the linear test passed, then the data can be rationalized by
+a weakly separable utility function. Failing to pass the linear test does not
+rule out weak separability. The nonlinear test yields more definitive results,
+separability is either accepted or rejected." So `method = "varian"` implements
+the linear one, and the nonlinear one is what everything since has been trying to
+make tractable.
 
 The motivating result is Barnett and Choi (1989): Varian's procedure is heavily
 biased toward rejecting weak separability on data generated from a blockwise
@@ -227,7 +314,7 @@ size threshold the method emits a message recommending `highs` or `Rglpk`.
 | Field | Content |
 |---|---|
 | `separable` | logical, the headline result |
-| `sufficient` | logical, whether the method's conditions are necessary and sufficient or necessary only |
+| `conditions` | character: `"sufficient"`, `"necessary"`, or `"necessary and sufficient"`. Replaces the earlier boolean `sufficient` field, which could not express the three-way distinction and invited exactly the error corrected in section 7.1 |
 | `method` | method identifier |
 | `efficiency` | efficiency level tested |
 | `stages` | per-stage detail: pass or fail, CCEI, diagnostics |
@@ -237,10 +324,11 @@ size threshold the method emits a message recommending `highs` or `Rglpk`.
 | `n_obs`, `n_goods` | dimensions |
 | `call` | the matched call |
 
-Methods: `print()` gives a compact stage-by-stage summary and states whether the
-conditions are necessary-only. `summary()` adds per-group diagnostics.
-`as.data.frame()` returns one row, so `separability_grid()` results bind into a
-tidy frame.
+Methods: `print()` gives a compact stage-by-stage summary and states what the
+result licenses. For `conditions = "sufficient"` it must say that a failure means
+separability was not established rather than ruled out. `summary()` adds
+per-group diagnostics. `as.data.frame()` returns one row, so
+`separability_grid()` results bind into a tidy frame.
 
 ## 9. Error handling
 

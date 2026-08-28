@@ -1,0 +1,26 @@
+Package: weaksep
+Type: Package
+Title: Nonparametric Revealed Preference Tests of Weak Separability
+Version: 0.0.0.9000
+Authors@R: person("Logan", "Kelly", email = "PLACEHOLDER@EXAMPLE.COM",
+                  role = c("aut", "cre"))
+Description: Implements nonparametric revealed preference tests of weak
+    separability for finite sets of price and quantity observations. Provides
+    the three-stage procedure of Varian (1983) <doi:10.2307/2296957>, together
+    with the underlying axiom checks and goodness-of-fit indices of Varian
+    (1982) <doi:10.2307/1912771> and Varian (1990)
+    <doi:10.1016/0304-4076(90)90051-T>, and superlative index number
+    construction following Diewert (1976)
+    <doi:10.1016/0304-4076(76)90009-9>. Includes synthetic data generators with
+    known separability structure for Monte Carlo validation, following Barnett
+    and Choi (1989) <doi:10.1080/07350015.1989.10509745>.
+License: GPL (>= 3)
+Encoding: UTF-8
+Depends: R (>= 4.1)
+Imports: Rcpp, lpSolve, stats, utils
+LinkingTo: Rcpp
+Suggests: revpref, revealedPrefs, highs, Rglpk, IndexNumR,
+    testthat (>= 3.0.0), knitr, rmarkdown, covr, spelling
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

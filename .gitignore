@@ -3,6 +3,10 @@
 references/code/*
 !references/code/README.md
 
+# Publisher PDFs. Copyrighted, never committed, never pushed.
+references/papers/*
+!references/papers/README.md
+
 # R
 .Rproj.user
 .Rhistory

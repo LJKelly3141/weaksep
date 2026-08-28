@@ -1,5 +1,6 @@
 ^references$
 ^dev$
+^TODO\.md$
 ^\.github$
 ^README\.Rmd$
 ^cran-comments\.md$
