@@ -67,8 +67,13 @@ the code:
 | Source tarball | 39K |
 | All examples, total | 0.34s |
 | Test suite, all solvers installed | 18s |
-| Test suite, depends-only library | 1.5s, 345 pass, 0 fail, 13 skip |
+| Test suite, depends-only library | 18.8s, 442 pass, 0 fail, 7 skip, at `c2bfee8` |
 | Installed size | OK, no NOTE |
+
+The depends-only figures were 1.5s, 345 pass and 13 skip at `28da666`, before
+`separability_grid()` and before `Matrix` moved to `Imports`. The skip count fell
+because `Matrix` stopped being conditional, and the pass count rose with the grid
+suite.
 
 Everything below is verified against the working tree on 2026-08-29, not
 recalled. Where an item cites `file:line`, that line was read.
@@ -79,7 +84,7 @@ Line numbers are as of `6f2e78a`, before the fixes.
 
 | ID | Severity | Item | Location | Status |
 |---|---|---|---|---|
-| W1 | WARNING | `\link{}` to `separability_grid`, which does not exist | `R/class-weaksep-test.R:115` | Fixed in `28da666`. Link replaced with `[rbind()]`, which is what the sentence was about. Can come back with Task 12. |
+| W1 | WARNING | `\link{}` to `separability_grid`, which does not exist | `R/class-weaksep-test.R:115` | **Closed in `c2bfee8`.** Two steps: the link was dropped in `28da666` to clear the WARNING, then Task 12 landed the function and the link returned with it, as this spec anticipated. |
 | W2 | WARNING | `adjust` in `\usage` with no documentation | `R/weak-separability.R:78` | Fixed in `28da666`. `@param adjust` added. |
 | N1 | NOTE | "Version contains large components (0.0.0.9000)" | `DESCRIPTION:4` | **Open by design.** Release-time action, phase 7. |
 | N2 | NOTE | `utils` declared in `Imports`, never used | `DESCRIPTION:21` | Fixed in `28da666`. Removed. |
@@ -132,9 +137,24 @@ settled, because every item here is a class of defect that can return.
       (Task 12 in `TODO.md` section 2), or delete the `[separability_grid()]`
       link at `R/class-weaksep-test.R:115` and say it in prose. Do not leave a
       link to a planned function.
-      *Acceptance:* "checking Rd cross-references ... OK". **Met.** The link was
-      dropped in favour of `[rbind()]`, which is what the sentence was actually
-      about. If Task 12 lands, the link can return with it.
+      *Acceptance:* "checking Rd cross-references ... OK". **Met twice over.**
+      First in `28da666` by dropping the link in favour of `[rbind()]`, which is
+      what the sentence was actually about. Then properly in `c2bfee8`, where
+      Task 12 landed `separability_grid()` and the link returned with it. The
+      cross-references check is still OK with the link restored and
+      `man/separability_grid.Rd` present.
+
+      One lesson from that commit belongs in the record, because it is the kind
+      of thing this spec exists to catch. The new grid tests originally crossed
+      two partitions with `c("varian", "mip")`. The cell being asserted on was
+      refused before any solve, but the neighbouring `ok/mip` cell went straight
+      to `mip_separability`, and on a machine without `highs` or `Rglpk` that
+      falls through to `lpSolve`, which reports incorrect infeasibility from
+      about twelve observations. A test written to check error handling would
+      have quietly exercised the one solver path known to give wrong answers.
+      **A test can reach a solver without meaning to.** Grid and sweep helpers
+      make this easy, because the cell that matters and the cell that solves are
+      not the same cell.
 
 - [x] **W2. Document `adjust`.** Add `@param adjust` to the roxygen block at
       `R/weak-separability.R:37` to `49`. The parameter selects which goods may
