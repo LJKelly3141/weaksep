@@ -88,11 +88,6 @@ weak_separability <- function(x, partition,
 
   pt <- resolve_partition(partition, x$goods)
 
-  if (method == "fw") {
-    stop("method = ", sQuote(method), " is not yet implemented. ",
-         "Available: \"varian\", \"mip\" and \"sw\".", call. = FALSE)
-  }
-
   if (method %in% c("mip", "sw")) {
     res <- mip_stages(x, pt, efficiency, solver, verbose,
                       psi_free = (method == "sw"), adjust = adjust)
@@ -105,11 +100,23 @@ weak_separability <- function(x, partition,
     ))
   }
 
-  stage2 <- switch(subutility,
-                   afriat  = stage2_afriat,
-                   divisia = stage2_divisia)
+  ## method = "fw" is the same three-stage engine with Fleissig and Whitney's
+  ## superlative-index LP supplying stage two, so `subutility` does not apply.
+  if (method == "fw") {
+    if (!missing(subutility) && !identical(subutility, "afriat")) {
+      warning("`subutility` is ignored for method = \"fw\", which uses its own ",
+              "superlative-index construction.", call. = FALSE)
+    }
+    stage2 <- stage2_fw
+    label <- "fw"
+  } else {
+    stage2 <- switch(subutility,
+                     afriat  = stage2_afriat,
+                     divisia = stage2_divisia)
+    label <- subutility
+  }
 
-  res <- three_stage(x, pt, efficiency, stage2, subutility, verbose)
+  res <- three_stage(x, pt, efficiency, stage2, label, verbose)
 
   new_weaksep_test(
     separable = res$separable, conditions = "sufficient", method = method,

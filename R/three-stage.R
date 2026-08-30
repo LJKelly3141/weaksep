@@ -49,6 +49,81 @@ stage2_divisia <- function(pg, qg, efficiency) {
        detail = "divisia")
 }
 
+## Fleissig and Whitney (2003). Rather than accepting whatever the Afriat
+## construction produces, take a superlative index as the candidate subutility
+## and ask how far it must be nudged to satisfy the inner Afriat inequalities.
+##
+## Let Vt be the chained Tornqvist quantity index of the group. With upward and
+## downward adjustments Qp, Qn >= 0 the adjusted index is V*_t = Vt + Qp_t - Qn_t.
+## Adding up requires the group price index times the group quantity index to
+## equal group expenditure, so delta_t = Vt / (q_t y_t), with deviations dp, dn.
+## The programme is
+##
+##   min  sum (Qp_t + Qn_t + dp_t + dn_t)
+##   s.t. V*_t - V*_v - delta_v q_v (y_t - y_v) <= 0        for all t, v
+##        delta_t - dp_t + dn_t = Vt / (q_t y_t)
+##        delta_t >= eps,   V*_t >= eps
+##
+## Z = 0 means the raw superlative index already solved the inner inequalities.
+## Z > 0 measures how much adjustment was needed. Everything is linear, which is
+## the "PC-based" claim of the title, against Swofford and Whitney's nonlinear
+## programme on a CRAY.
+stage2_fw <- function(pg, qg, efficiency, eps = 1e-6) {
+  tt <- nrow(pg)
+  vt <- suppressWarnings(divisia(pg, qg))$quantity_index
+  inc <- rowSums(pg * qg)
+
+  cy <- pg %*% t(qg)                  # cy[v, t] = q_v . y_t
+  c1 <- cy - diag(cy)                 # c1[v, t] = q_v (y_t - y_v)
+
+  ## Variables: Qp(1..T), Qn(T+1..2T), delta(2T+1..3T), dp(3T+1..4T), dn(4T+1..5T)
+  iQp <- function(t) t
+  iQn <- function(t) tt + t
+  iD  <- function(t) 2L * tt + t
+  idp <- function(t) 3L * tt + t
+  idn <- function(t) 4L * tt + t
+  n_var <- 5L * tt
+
+  con <- list(); dir <- character(0); rhs <- numeric(0)
+  push <- function(cols, vals, d, b) {
+    row <- numeric(n_var); row[cols] <- vals
+    con[[length(con) + 1L]] <<- row
+    dir <<- c(dir, d); rhs <<- c(rhs, b)
+  }
+
+  for (t in seq_len(tt)) {
+    for (v in seq_len(tt)) {
+      if (t == v) next
+      push(c(iQp(t), iQn(t), iQp(v), iQn(v), iD(v)),
+           c(1, -1, -1, 1, -c1[v, t]), "<=", vt[v] - vt[t])
+    }
+  }
+  for (t in seq_len(tt)) {
+    push(c(iD(t), idp(t), idn(t)), c(1, -1, 1), "=", vt[t] / inc[t])
+    push(iD(t), 1, ">=", eps)
+    push(c(iQp(t), iQn(t)), c(1, -1), ">=", eps - vt[t])
+  }
+
+  obj <- numeric(n_var)
+  obj[c(seq_len(2L * tt), 3L * tt + seq_len(2L * tt))] <- 1
+
+  sol <- lpSolve::lp(direction = "min", objective.in = obj,
+                     const.mat = do.call(rbind, con),
+                     const.dir = dir, const.rhs = rhs)
+
+  if (sol$status != 0L) {
+    return(list(quantity = NULL, price = NULL, ok = FALSE,
+                detail = "fw: LP infeasible"))
+  }
+  qp <- sol$solution[seq_len(tt)]
+  qn <- sol$solution[tt + seq_len(tt)]
+  dl <- sol$solution[2L * tt + seq_len(tt)]
+  vstar <- vt + qp - qn
+
+  list(quantity = vstar, price = 1 / dl, ok = TRUE,
+       detail = paste0("fw, Z = ", format(signif(sol$objval, 3))))
+}
+
 three_stage <- function(d, pt, efficiency, stage2, stage2_label, verbose) {
   group_names <- setdiff(names(pt), ".outside")
   stages <- vector("list", 3L)
@@ -96,6 +171,9 @@ three_stage <- function(d, pt, efficiency, stage2, stage2_label, verbose) {
     }
     agg_q[, g] <- res$quantity
     agg_p[, g] <- res$price
+    ## Report what the construction said, not just which one ran. For fw this
+    ## carries Z, the amount the superlative index had to be adjusted.
+    s2_detail <- res$detail
   }
   stages[[2]] <- list(name = "Stage 2: subutility", pass = s2_pass,
                       ccei = NA_real_, detail = s2_detail)

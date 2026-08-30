@@ -52,18 +52,25 @@ test_that("weak_separability accepts a raw long data frame", {
   expect_s3_class(r, "weaksep_test")
 })
 
-test_that("unimplemented methods fail loudly rather than silently", {
+test_that("every advertised method runs", {
   d <- as_demand(blockwise(), obs, good, price, quantity)
-  expect_error(weak_separability(d, list(block = c("a", "b")), method = "fw"),
-               "not yet implemented")
-  ## "mip" and "sw" are implemented; neither may be caught by that branch.
+  for (m in c("varian", "fw")) {
+    expect_s3_class(weak_separability(d, list(block = c("a", "b")), method = m),
+                    "weaksep_test")
+  }
   skip_if_not(any(vapply(c("highs", "Rglpk"),
                          function(s) requireNamespace(s, quietly = TRUE),
                          logical(1))),
               "no reliable MILP solver installed")
   for (m in c("mip", "sw")) {
-    expect_error(weak_separability(d, list(block = c("a", "b")), method = m), NA)
+    expect_s3_class(weak_separability(d, list(block = c("a", "b")), method = m),
+                    "weaksep_test")
   }
+})
+
+test_that("an unknown method is rejected by match.arg", {
+  d <- as_demand(blockwise(), obs, good, price, quantity)
+  expect_error(weak_separability(d, list(block = c("a", "b")), method = "nope"))
 })
 
 test_that("verbose emits stage progress and the default is quiet", {

@@ -9,11 +9,11 @@
 Implements nonparametric revealed preference tests of weak separability for finite sets of price and quantity observations. Provides the three-stage procedure of Varian (1983) \doi{10.2307/2296957}, together with the underlying axiom checks and goodness-of-fit indices of Varian (1982) \doi{10.2307/1912771} and Varian (1990) \doi{10.1016/0304-4076(90)90051-T}, and superlative index number construction following Diewert (1976) \doi{10.1016/0304-4076(76)90009-9}. Includes synthetic data generators with known separability structure for Monte Carlo validation, following Barnett and Choi (1989) \doi{10.1080/07350015.1989.10509745}.
 }
 \author{
-\strong{Maintainer}: Logan Kelly \email{logan.kelly@uwrf.edu}
+\strong{Maintainer}: Logan Kelly \email{logan.kelly@uwrf.edu} (\href{https://orcid.org/0000-0002-5938-979X}{ORCID})
 
 Authors:
 \itemize{
-  \item Logan Kelly \email{logan.kelly@uwrf.edu}
+  \item Logan Kelly \email{logan.kelly@uwrf.edu} (\href{https://orcid.org/0000-0002-5938-979X}{ORCID})
 }
 
 }
