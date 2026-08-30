@@ -16,7 +16,20 @@
 #' a chained Tornqvist-Theil index, which is superlative in the sense of Diewert
 #' (1976).
 #'
-#' `"sw"`, `"fw"` and `"mip"` are reserved and currently error.
+#' `method = "fw"` uses the same engine with the superlative-index linear
+#' programme of Fleissig and Whitney (2003) supplying stage two: the chained
+#' Tornqvist index is taken as the candidate subutility and adjusted as little as
+#' possible to satisfy the inner Afriat inequalities. `subutility` does not apply.
+#'
+#' `method = "mip"` is the exact integer programme of Cherchye, Demuynck,
+#' De Rock and Hjertstrand (2015). Unlike the sequential tests it is necessary
+#' **and** sufficient, so it alone can rule separability out. It tests one group
+#' against all other goods, requires a mixed integer solver (see
+#' [mip_solvers()]), and is implemented only at `efficiency = 1`.
+#'
+#' `method = "sw"` is the same programme with the incomplete-adjustment extension
+#' of Swofford and Whitney (1994), linearised as in Hjertstrand, Swofford and
+#' Whitney. `adjust` names the goods allowed to adjust incompletely.
 #'
 #' @section What a result licenses:
 #'
@@ -40,12 +53,21 @@
 #' @param partition Named list of character vectors. Each element names the goods
 #'   in one candidate group. Goods named in no group form the outside block.
 #'   Groups must not overlap and must contain at least two goods.
-#' @param method Which test to apply. Only `"varian"` is implemented.
+#' @param method Which test to apply: `"varian"`, `"fw"`, `"mip"` or `"sw"`.
 #' @param efficiency Numeric scalar in `(0, 1]`, the Afriat efficiency level.
+#'   `"mip"` and `"sw"` accept only `1`; the published programmes carry no
+#'   efficiency parameter and this package does not invent one.
 #' @param subutility For `method = "varian"`, whether stage two builds the
 #'   subutility from the Afriat inequalities (`"afriat"`) or from a chained
-#'   Tornqvist-Theil index (`"divisia"`).
-#' @param solver Reserved for `method = "mip"`. Ignored otherwise.
+#'   Tornqvist-Theil index (`"divisia"`). Ignored, with a warning, for `"fw"`,
+#'   which has its own construction, and irrelevant to `"mip"` and `"sw"`.
+#' @param solver Mixed integer solver for `method = "mip"` and `method = "sw"`,
+#'   one of `"highs"`, `"Rglpk"` or `"lpSolve"`. `NULL` picks the best installed;
+#'   see [mip_solvers()]. Ignored by `"varian"` and `"fw"`.
+#' @param adjust For `method = "sw"`, a character vector naming the goods
+#'   permitted to adjust incompletely within the period. `NULL`, the default,
+#'   applies incomplete adjustment to the whole tested group, which is the
+#'   expenditure constraint of Swofford and Whitney (1994). Only for `"sw"`.
 #' @param verbose If `TRUE`, emit a message as each stage begins.
 #'
 #' @return An object of class `weaksep_test`. See [print.weaksep_test()].

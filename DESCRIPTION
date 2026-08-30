@@ -18,9 +18,9 @@ Description: Implements nonparametric revealed preference tests of weak
 License: GPL (>= 3)
 Encoding: UTF-8
 Depends: R (>= 4.1)
-Imports: Rcpp, lpSolve, stats, utils
+Imports: Rcpp, lpSolve, Matrix, stats
 LinkingTo: Rcpp
-Suggests: revpref, revealedPrefs, highs, Rglpk, Matrix, IndexNumR,
+Suggests: revpref, revealedPrefs, highs, Rglpk, IndexNumR,
     testthat (>= 3.0.0), knitr, rmarkdown, covr, spelling
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)

@@ -24,15 +24,25 @@ columns \code{obs}, \code{good}, \code{price} and \code{quantity}, which is pass
 in one candidate group. Goods named in no group form the outside block.
 Groups must not overlap and must contain at least two goods.}
 
-\item{method}{Which test to apply. Only \code{"varian"} is implemented.}
+\item{method}{Which test to apply: \code{"varian"}, \code{"fw"}, \code{"mip"} or \code{"sw"}.}
 
-\item{efficiency}{Numeric scalar in \verb{(0, 1]}, the Afriat efficiency level.}
+\item{efficiency}{Numeric scalar in \verb{(0, 1]}, the Afriat efficiency level.
+\code{"mip"} and \code{"sw"} accept only \code{1}; the published programmes carry no
+efficiency parameter and this package does not invent one.}
 
 \item{subutility}{For \code{method = "varian"}, whether stage two builds the
 subutility from the Afriat inequalities (\code{"afriat"}) or from a chained
-Tornqvist-Theil index (\code{"divisia"}).}
+Tornqvist-Theil index (\code{"divisia"}). Ignored, with a warning, for \code{"fw"},
+which has its own construction, and irrelevant to \code{"mip"} and \code{"sw"}.}
 
-\item{solver}{Reserved for \code{method = "mip"}. Ignored otherwise.}
+\item{solver}{Mixed integer solver for \code{method = "mip"} and \code{method = "sw"},
+one of \code{"highs"}, \code{"Rglpk"} or \code{"lpSolve"}. \code{NULL} picks the best installed;
+see \code{\link[=mip_solvers]{mip_solvers()}}. Ignored by \code{"varian"} and \code{"fw"}.}
+
+\item{adjust}{For \code{method = "sw"}, a character vector naming the goods
+permitted to adjust incompletely within the period. \code{NULL}, the default,
+applies incomplete adjustment to the whole tested group, which is the
+expenditure constraint of Swofford and Whitney (1994). Only for \code{"sw"}.}
 
 \item{verbose}{If \code{TRUE}, emit a message as each stage begins.}
 }
@@ -57,7 +67,20 @@ the construction: \code{"afriat"} solves the Afriat inequalities, \code{"divisia
 a chained Tornqvist-Theil index, which is superlative in the sense of Diewert
 (1976).
 
-\code{"sw"}, \code{"fw"} and \code{"mip"} are reserved and currently error.
+\code{method = "fw"} uses the same engine with the superlative-index linear
+programme of Fleissig and Whitney (2003) supplying stage two: the chained
+Tornqvist index is taken as the candidate subutility and adjusted as little as
+possible to satisfy the inner Afriat inequalities. \code{subutility} does not apply.
+
+\code{method = "mip"} is the exact integer programme of Cherchye, Demuynck,
+De Rock and Hjertstrand (2015). Unlike the sequential tests it is necessary
+\strong{and} sufficient, so it alone can rule separability out. It tests one group
+against all other goods, requires a mixed integer solver (see
+\code{\link[=mip_solvers]{mip_solvers()}}), and is implemented only at \code{efficiency = 1}.
+
+\code{method = "sw"} is the same programme with the incomplete-adjustment extension
+of Swofford and Whitney (1994), linearised as in Hjertstrand, Swofford and
+Whitney. \code{adjust} names the goods allowed to adjust incompletely.
 }
 
 \section{What a result licenses}{
