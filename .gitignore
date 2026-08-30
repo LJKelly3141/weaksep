@@ -16,6 +16,13 @@ references/papers/*
 references/*.xls
 references/*.xlsx
 
+# Maintainer's research working file. Holds unpublished work: the design of an
+# unwritten paper, a preliminary result not yet claimed, and journal strategy.
+# Tracked from the second commit, removed from the entire history on 2026-08-30
+# immediately before the first public push. Stays on disk, stays out of git.
+# dev/ is deliberately NOT ignored: those are design documents and belong here.
+TODO.md
+
 # R
 .Rproj.user
 .Rhistory
