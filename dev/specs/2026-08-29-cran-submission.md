@@ -16,6 +16,13 @@ It replaces the one-line "Task 14: docs, vignettes, pkgdown, CI, CRAN prep" in
 
 `dev/` is in `.Rbuildignore:2`, so nothing in this file reaches the tarball.
 
+**Note on commit hashes.** The history was rewritten on 2026-08-30 to remove
+`references/Fleissig-Whitney_JBES.xls` before this repository was first pushed
+public, so every hash from the second commit onward changed. The hashes cited
+below are the current ones. Commit *messages* inside the history still cite the
+pre-rewrite hashes and cannot be corrected without another rewrite; find those
+commits with `git log --grep` on the subject line instead.
+
 ## 2. Current state, measured not assumed
 
 Four `R CMD check` runs on 2026-08-29, R 4.6.1, aarch64-apple-darwin23,
@@ -27,10 +34,10 @@ R CMD check --as-cran --no-manual weaksep_0.0.0.9000.tar.gz
 _R_CHECK_DEPENDS_ONLY_=true R CMD check --as-cran --no-manual weaksep_0.0.0.9000.tar.gz
 ```
 
-**Before, at `7696283`: 2 WARNINGs, 2 NOTEs**, reproduced across three runs
+**Before, at `96fd7e7`: 2 WARNINGs, 2 NOTEs**, reproduced across three runs
 including a depends-only library.
 
-**Now, at `d7e580f`: 1 NOTE, zero ERRORs, zero WARNINGs.** Verified
+**Now, at `323c0d4`: 1 NOTE, zero ERRORs, zero WARNINGs.** Verified
 independently by a fourth run, depends-only, after the fixes landed. The
 surviving NOTE is the whole of the incoming-feasibility report:
 
@@ -60,22 +67,22 @@ recalled. Where an item cites `file:line`, that line was read.
 
 ### 2.1 What the check found, and what became of it
 
-Line numbers are as of `7696283`, before the fixes.
+Line numbers are as of `96fd7e7`, before the fixes.
 
 | ID | Severity | Item | Location | Status |
 |---|---|---|---|---|
-| W1 | WARNING | `\link{}` to `separability_grid`, which does not exist | `R/class-weaksep-test.R:115` | Fixed in `d7e580f`. Link replaced with `[rbind()]`, which is what the sentence was about. Can come back with Task 12. |
-| W2 | WARNING | `adjust` in `\usage` with no documentation | `R/weak-separability.R:78` | Fixed in `d7e580f`. `@param adjust` added. |
+| W1 | WARNING | `\link{}` to `separability_grid`, which does not exist | `R/class-weaksep-test.R:115` | Fixed in `323c0d4`. Link replaced with `[rbind()]`, which is what the sentence was about. Can come back with Task 12. |
+| W2 | WARNING | `adjust` in `\usage` with no documentation | `R/weak-separability.R:78` | Fixed in `323c0d4`. `@param adjust` added. |
 | N1 | NOTE | "Version contains large components (0.0.0.9000)" | `DESCRIPTION:4` | **Open by design.** Release-time action, phase 7. |
-| N2 | NOTE | `utils` declared in `Imports`, never used | `DESCRIPTION:21` | Fixed in `d7e580f`. Removed. |
+| N2 | NOTE | `utils` declared in `Imports`, never used | `DESCRIPTION:21` | Fixed in `323c0d4`. Removed. |
 
 ### 2.2 What the check cannot find, and what became of it
 
 | ID | Item | Location | Status |
 |---|---|---|---|
-| P1 | `Matrix`, a `Suggests` package, used unconditionally | `R/method-mip.R:95` | Fixed in `d7e580f`. Moved `Suggests` to `Imports`, the recommended option below. |
-| D1 | Manual states `sw`, `fw`, `mip` "are reserved and currently error". All three work. | `R/weak-separability.R:19`, `:43` | Fixed in `d7e580f`. Each method now has a paragraph on what it does, what its `conditions` license, and what it requires. |
-| D2 | `@param solver` says "Reserved for `method = "mip"`. Ignored otherwise." It is passed for `"sw"`. | `R/weak-separability.R:48` vs `:92` | Fixed in `d7e580f`. Now documents the solver roster and points at `mip_solvers()`. |
+| P1 | `Matrix`, a `Suggests` package, used unconditionally | `R/method-mip.R:95` | Fixed in `323c0d4`. Moved `Suggests` to `Imports`, the recommended option below. |
+| D1 | Manual states `sw`, `fw`, `mip` "are reserved and currently error". All three work. | `R/weak-separability.R:19`, `:43` | Fixed in `323c0d4`. Each method now has a paragraph on what it does, what its `conditions` license, and what it requires. |
+| D2 | `@param solver` says "Reserved for `method = "mip"`. Ignored otherwise." It is passed for `"sw"`. | `R/weak-separability.R:48` vs `:92` | Fixed in `323c0d4`. Now documents the solver roster and points at `mip_solvers()`. |
 
 D1 and D2 were the more serious pair, and the reason this section exists. A
 dangling link is a formatting defect. A manual that tells users three
@@ -109,7 +116,7 @@ That is the normal path, not a rejection of the work.
 Blocking. Nothing else in this spec matters until `R CMD check --as-cran` is
 clean.
 
-**Complete in `d7e580f`, verified 2026-08-29 by an independent depends-only
+**Complete in `323c0d4`, verified 2026-08-29 by an independent depends-only
 check run.** Kept in full as the record of what was wrong and how it was
 settled, because every item here is a class of defect that can return.
 
@@ -155,7 +162,7 @@ package's state for however long the remaining phases take.
       that cannot occur in practice.
       *Acceptance:* a depends-only run in which no test skips for a missing
       `Matrix`, and `weak_separability(method = "mip")` either works or fails
-      with a message naming the missing package. **Met in `d7e580f`**, by the
+      with a message naming the missing package. **Met in `323c0d4`**, by the
       recommended route: `Matrix` moved to `Imports`.
 
 ## 5. Phase 2: make the manual true
@@ -163,7 +170,7 @@ package's state for however long the remaining phases take.
 Not check failures. Both are visible to the first reviewer who reads the manual
 against the code, and both would be embarrassing to have pointed out.
 
-**Complete in `d7e580f`.** Retained as the record, and as the standing rule: any
+**Complete in `323c0d4`.** Retained as the record, and as the standing rule: any
 change to the method roster reopens this phase.
 
 - [x] **D1.** Rewrite `R/weak-separability.R:19` and `:43`. Line 19 says `"sw"`,
@@ -180,7 +187,7 @@ change to the method roster reopens this phase.
 - [x] Re-run `devtools::document()` and re-check. The Rd files are generated and
       currently mix new signatures with old prose.
       *Acceptance:* every claim in `man/weak_separability.Rd` is true of the code
-      at the commit being submitted. **Met at `d7e580f`.**
+      at the commit being submitted. **Met at `323c0d4`.**
 
 ## 6. Phase 3: metadata and identity
 
@@ -250,7 +257,7 @@ boilerplate.
       **The MIP suite is slow for cause. Do not trim it for runtime.** An
       earlier encoding admitted a degenerate all-zero solution that made every
       dataset look separable under `highs` while `Rglpk` correctly rejected the
-      same data. Fixed in `e46dcb6` by raising `delta_min` to `1e-3`
+      same data. Fixed in `c23a12f` by raising `delta_min` to `1e-3`
       (`R/method-mip.R:139`, with a guard at `:154` that warns below `1e-5`).
       The cross-solver agreement test exists specifically to catch that class of
       bug, and it is the only thing standing between the package and an exact

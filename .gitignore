@@ -7,6 +7,15 @@ references/code/*
 references/papers/*
 !references/papers/README.md
 
+# Journal supplementary material. Same rule as the PDFs above, and it was not
+# covered by them. references/Fleissig-Whitney_JBES.xls, supplementary material
+# to Fleissig & Whitney (2003), was tracked from the second commit and was
+# removed from the entire history on 2026-08-30, immediately before this
+# repository was first pushed public. The file stays on disk; it is only out of
+# git. Do not add it back.
+references/*.xls
+references/*.xlsx
+
 # R
 .Rproj.user
 .Rhistory
