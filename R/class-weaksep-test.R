@@ -112,7 +112,7 @@ print.summary.weaksep_test <- function(x, ...) {
 #' Coerce a weak separability test result to a one-row data frame
 #'
 #' Returns a single row so that results from many partitions bind into a tidy
-#' frame with [rbind()].
+#' frame with [rbind()]. [separability_grid()] does that for you.
 #'
 #' @param x A `weaksep_test` object.
 #' @param row.names Passed to [data.frame()].

@@ -22,7 +22,7 @@ logical column per stage.
 }
 \description{
 Returns a single row so that results from many partitions bind into a tidy
-frame with \code{\link[=rbind]{rbind()}}.
+frame with \code{\link[=rbind]{rbind()}}. \code{\link[=separability_grid]{separability_grid()}} does that for you.
 }
 \examples{
 d <- sim_cobb_douglas(15, 4, blocks = list(m = c("a", "b")), seed = 1)
