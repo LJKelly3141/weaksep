@@ -3,7 +3,8 @@ Type: Package
 Title: Nonparametric Revealed Preference Tests of Weak Separability
 Version: 0.0.0.9000
 Authors@R: person("Logan", "Kelly", email = "logan.kelly@uwrf.edu",
-                  role = c("aut", "cre"))
+                  role = c("aut", "cre"),
+                  comment = c(ORCID = "0000-0002-5938-979X"))
 Description: Implements nonparametric revealed preference tests of weak
     separability for finite sets of price and quantity observations. Provides
     the three-stage procedure of Varian (1983) <doi:10.2307/2296957>, together
