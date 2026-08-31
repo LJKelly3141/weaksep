@@ -6,7 +6,15 @@
 \alias{weaksep-package}
 \title{weaksep: Nonparametric Revealed Preference Tests of Weak Separability}
 \description{
-Implements nonparametric revealed preference tests of weak separability for finite sets of price and quantity observations. Provides the three-stage procedure of Varian (1983) \doi{10.2307/2296957}, together with the underlying axiom checks and goodness-of-fit indices of Varian (1982) \doi{10.2307/1912771} and Varian (1990) \doi{10.1016/0304-4076(90)90051-T}, and superlative index number construction following Diewert (1976) \doi{10.1016/0304-4076(76)90009-9}. Includes synthetic data generators with known separability structure for Monte Carlo validation, following Barnett and Choi (1989) \doi{10.1080/07350015.1989.10509745}.
+Tests whether a group of goods can be consistently aggregated. Weak separability is the condition under which a consistent aggregate exists: without it there is no sub-utility function over the group, and so no composite commodity, no two-stage budgeting, and no defensible price or quantity index for the subgroup. That makes it a precondition for most aggregates in economics, from a consumption aggregate to value added to a monetary aggregate, and applied work more often assumes it than tests it. Implements nonparametric revealed preference tests of weak separability for finite sets of price and quantity observations. Provides the three-stage procedure of Varian (1983) \doi{10.2307/2296957}, together with the underlying axiom checks and goodness-of-fit indices of Varian (1982) \doi{10.2307/1912771} and Varian (1990) \doi{10.1016/0304-4076(90)90051-T}, and superlative index number construction following Diewert (1976) \doi{10.1016/0304-4076(76)90009-9}. Includes synthetic data generators with known separability structure for Monte Carlo validation, following Barnett and Choi (1989) \doi{10.1080/07350015.1989.10509745}.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/LJKelly3141/weaksep}
+  \item Report bugs at \url{https://github.com/LJKelly3141/weaksep/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Logan Kelly \email{logan.kelly@uwrf.edu} (\href{https://orcid.org/0000-0002-5938-979X}{ORCID})
