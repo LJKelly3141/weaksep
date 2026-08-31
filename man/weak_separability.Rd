@@ -7,7 +7,7 @@
 weak_separability(
   x,
   partition,
-  method = c("varian", "sw", "fw", "mip"),
+  method = c("fw", "varian", "sw", "mip"),
   efficiency = 1,
   subutility = c("afriat", "divisia"),
   solver = NULL,
@@ -24,7 +24,8 @@ columns \code{obs}, \code{good}, \code{price} and \code{quantity}, which is pass
 in one candidate group. Goods named in no group form the outside block.
 Groups must not overlap and must contain at least two goods.}
 
-\item{method}{Which test to apply: \code{"varian"}, \code{"fw"}, \code{"mip"} or \code{"sw"}.}
+\item{method}{Which test to apply: \code{"fw"} (the default), \code{"varian"},
+\code{"mip"} or \code{"sw"}. See the section on choosing a method.}
 
 \item{efficiency}{Numeric scalar in \verb{(0, 1]}, the Afriat efficiency level.
 \code{"mip"} and \code{"sw"} accept only \code{1}; the published programmes carry no
@@ -33,7 +34,9 @@ efficiency parameter and this package does not invent one.}
 \item{subutility}{For \code{method = "varian"}, whether stage two builds the
 subutility from the Afriat inequalities (\code{"afriat"}) or from a chained
 Tornqvist-Theil index (\code{"divisia"}). Ignored, with a warning, for \code{"fw"},
-which has its own construction, and irrelevant to \code{"mip"} and \code{"sw"}.}
+which has its own construction, and irrelevant to \code{"mip"} and \code{"sw"}.
+\code{"afriat"} is Varian's original and is kept for replication rather than
+recommended; see the section on choosing a method.}
 
 \item{solver}{Mixed integer solver for \code{method = "mip"} and \code{method = "sw"},
 one of \code{"highs"}, \code{"Rglpk"} or \code{"lpSolve"}. \code{NULL} picks the best installed;
@@ -81,6 +84,57 @@ against all other goods, requires a mixed integer solver (see
 \code{method = "sw"} is the same programme with the incomplete-adjustment extension
 of Swofford and Whitney (1994), linearised as in Hjertstrand, Swofford and
 Whitney. \code{adjust} names the goods allowed to adjust incompletely.
+}
+
+\section{Choosing a method}{
+
+
+\code{"fw"} is the default. Among the sequential tests it is the only one that
+both certifies correctly and leaves data that is separable by construction
+alone.
+
+\code{method = "varian"} with \code{subutility = "afriat"} is Varian's original
+procedure. \strong{It is retained for historical continuity and for replicating
+studies that used it, and is not recommended for applied work.} Its stage
+two picks one admissible subutility out of infinitely many, and that
+arbitrary choice shows up as a measurable rate: it rejects data that is
+separable by construction, and its verdict is not invariant to scaling every
+price within a period by a common factor, a transformation that leaves the
+budget set, and therefore the revealed preference content, unchanged.
+
+\code{subutility = "divisia"} is exact on homothetic data and rejects almost
+everything off it. The Tornqvist index satisfies Varian's inner inequalities
+when the aggregator is homogeneous, which is the case Diewert (1976)
+licenses, and rarely otherwise. Where they fail, the construction certifies
+nothing, so stage two fails rather than handing stage three a certificate
+that does not exist. Prefer it only where homotheticity is defensible;
+\code{"fw"} adjusts the same index minimally until the inequalities do hold.
+}
+
+\section{Measured behaviour}{
+
+
+Rejection rates over 200 replications per cell, five goods, a three-good
+candidate group. Cobb-Douglas utility is additively separable and so weakly
+separable in every subset of goods, which makes every rejection in that
+column a false rejection. Random data satisfies no restriction at all.
+
+\tabular{lrrr}{
+\strong{T = 20}  \tab Cobb-Douglas \tab translog \tab random \cr
+varian + afriat  \tab 0.060 \tab 0.635 \tab 1.000 \cr
+varian + divisia \tab 0.000 \tab 1.000 \tab 1.000 \cr
+fw               \tab 0.000 \tab 0.555 \tab 1.000 \cr
+\strong{T = 30}  \tab             \tab          \tab       \cr
+varian + afriat  \tab 0.065 \tab 0.800 \tab 1.000 \cr
+varian + divisia \tab 0.000 \tab 1.000 \tab 1.000 \cr
+fw               \tab 0.000 \tab 0.670 \tab 1.000
+}
+
+Read the translog column carefully. These are sufficient conditions, so a
+rejection is not evidence against separability, and on the same T = 20 data
+the exact test of Cherchye et al. puts the genuine non-separability rate at
+0.450. Everything the sequential tests reject beyond that is over-rejection,
+not power.
 }
 
 \section{What a result licenses}{

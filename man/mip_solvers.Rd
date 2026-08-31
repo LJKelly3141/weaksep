@@ -15,14 +15,20 @@ A data frame with one row per solver: \code{solver}, \code{installed},
 are installed and which would be chosen.
 }
 \details{
-\code{lpSolve} is deliberately the last choice despite being the only one with no
-system requirements. On the CS.WS program it returns \emph{incorrect} infeasibility
-from roughly twelve observations: on blockwise Cobb-Douglas data that is
-separable by construction, and which \code{Rglpk} correctly solves at every size
-tested, \code{lpSolve} reports infeasible for T of 12 and above. An exact test that
-silently says "not separable" when the answer is "separable" is worse than a
-slow one, so \code{lpSolve} is used only when nothing better is installed, and then
-with a warning.
+\code{lpSolve} is listed but is never used for the integer programme, and cannot
+be requested. On the CS.WS program it returns \emph{incorrect} infeasibility from
+twelve observations: on blockwise Cobb-Douglas data that is separable by
+construction, and which \code{Rglpk} correctly solves at every size tested,
+\code{lpSolve} reports infeasible for T of 12 and above. An exact test that says
+"not separable" when the answer is "separable" is worse than no answer, so
+\code{method = "mip"} errors when neither \code{highs} nor \code{Rglpk} is installed rather
+than falling back. It is reported here so the reason is visible.
+
+Neither reliable solver is a hard dependency, because neither is needed by
+the default. \code{highs} requires CMake to build and \code{Rglpk} requires the GLPK
+system library, and imposing either on every user to support one optional
+method is not a trade this package makes. \code{method = "varian"}, \code{"fw"} and
+every axiom check run with no mixed integer solver at all.
 }
 \examples{
 mip_solvers()

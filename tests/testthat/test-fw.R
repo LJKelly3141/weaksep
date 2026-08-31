@@ -72,3 +72,42 @@ test_that("subutility is ignored for fw, with a warning", {
     "ignored for method"
   )
 })
+
+test_that("efficiency reaches stage two, not only the GARP checks either side", {
+  ## Regression. stage2_fw once accepted `efficiency` and never used it, so
+  ## relaxing efficiency loosened stages 1 and 3 while stage 2 stayed pinned at
+  ## e = 1. Whenever stage 2 was the binding stage, lowering efficiency did
+  ## nothing and the efficiency index fell straight to its floor.
+  ##
+  ## Relaxing efficiency loosens the inner inequalities, so the adjustment
+  ## needed can only fall. If efficiency were ignored, Z would be IDENTICAL at
+  ## every efficiency, so a strict decrease is what proves it arrives.
+  blk <- c("a", "b", "c")
+  strict <- 0L
+  for (s in 1:12) {
+    d <- as_demand(sim_translog(24, 5, seed = s), obs, good, price, quantity)
+    pg <- d$p[, blk]; qg <- d$q[, blk]
+    z1 <- stage2_fw(pg, qg, 1)$z
+    z5 <- stage2_fw(pg, qg, 0.5)$z
+    if (is.null(z1) || is.null(z5)) next
+    expect_lte(z5, z1 + 1e-9)          # relaxing can never cost more
+    if (z5 < z1 - 1e-9) strict <- strict + 1L
+  }
+  expect_gt(strict, 0L)
+})
+
+test_that("the stage-two adjustment Z is reported as a number", {
+  ## Z measures how far the superlative index had to move to satisfy Varian's
+  ## inner inequalities. It used to survive only inside a formatted string.
+  d <- sim_cobb_douglas(20, 4, blocks = list(m = c("a", "b")), seed = 1)
+  r <- weak_separability(d, list(m = c("a", "b")), method = "fw")
+  expect_type(r$stages[[2]]$z, "double")
+  ## Cobb-Douglas is homothetic, so the raw index already satisfies them.
+  expect_equal(r$stages[[2]]$z, 0, tolerance = 1e-6)
+  expect_equal(as.data.frame(r)$z, r$stages[[2]]$z)
+
+  ## Constructions that produce no such quantity report NA rather than 0, which
+  ## would read as "no adjustment needed".
+  v <- weak_separability(d, list(m = c("a", "b")), method = "varian")
+  expect_true(is.na(as.data.frame(v)$z))
+})

@@ -17,8 +17,10 @@
 }
 \value{
 A one-row data frame with columns \code{method}, \code{separable},
-\code{conditions}, \code{efficiency}, \code{ccei}, \code{n_obs}, \code{n_goods}, \code{groups}, and one
-logical column per stage.
+\code{conditions}, \code{efficiency}, \code{ccei}, \code{z}, \code{n_obs}, \code{n_goods}, \code{groups}, and
+one logical column per stage. \code{z} is the total stage-two adjustment, the
+amount the superlative index had to move to satisfy Varian's inner
+inequalities, and is \code{NA} for constructions that do not produce one.
 }
 \description{
 Returns a single row so that results from many partitions bind into a tidy

@@ -18,6 +18,12 @@ new_weaksep_test <- function(separable, conditions, method, efficiency,
   )
 }
 
+## Stage two's adjustment, when the construction produced one.
+stage_z <- function(x) {
+  z <- if (length(x$stages) >= 2L) x$stages[[2]]$z else NULL
+  if (is.null(z)) NA_real_ else as.numeric(z)
+}
+
 method_label <- function(method) {
   switch(method,
          varian = "Varian (1983) three-stage",
@@ -120,8 +126,10 @@ print.summary.weaksep_test <- function(x, ...) {
 #' @param ... Ignored.
 #'
 #' @return A one-row data frame with columns `method`, `separable`,
-#'   `conditions`, `efficiency`, `ccei`, `n_obs`, `n_goods`, `groups`, and one
-#'   logical column per stage.
+#'   `conditions`, `efficiency`, `ccei`, `z`, `n_obs`, `n_goods`, `groups`, and
+#'   one logical column per stage. `z` is the total stage-two adjustment, the
+#'   amount the superlative index had to move to satisfy Varian's inner
+#'   inequalities, and is `NA` for constructions that do not produce one.
 #'
 #' @examples
 #' d <- sim_cobb_douglas(15, 4, blocks = list(m = c("a", "b")), seed = 1)
@@ -136,6 +144,7 @@ as.data.frame.weaksep_test <- function(x, row.names = NULL, optional = FALSE,
     conditions = x$conditions,
     efficiency = x$efficiency,
     ccei       = x$ccei,
+    z          = stage_z(x),
     n_obs      = x$n_obs,
     n_goods    = x$n_goods,
     groups     = paste(names(x$partition), collapse = "|"),

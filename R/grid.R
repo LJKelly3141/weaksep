@@ -100,6 +100,10 @@ partition_members <- function(p) {
 #'     \item{`conditions`}{Whether the verdict is `"sufficient"`,
 #'       `"necessary"`, or `"necessary and sufficient"`.}
 #'     \item{`ccei`}{The efficiency index reported by the method.}
+#'     \item{`z`}{Total stage-two adjustment: how far the superlative index had
+#'       to move to satisfy Varian's inner inequalities. `0` means the raw index
+#'       already satisfied them. `NA` for methods that produce no such
+#'       quantity.}
 #'     \item{`stage1_pass`, `stage2_pass`, `stage3_pass`}{Per-stage outcomes.}
 #'     \item{`n_obs`, `n_goods`}{Dimensions of the data.}
 #'     \item{`error`}{The error message for a cell that failed, else `NA`.}
@@ -133,13 +137,13 @@ partition_members <- function(p) {
 #'
 #' @export
 separability_grid <- function(x, partitions,
-                              method = "varian",
+                              method = "fw",
                               efficiency = 1,
                               subutility = c("afriat", "divisia"),
                               solver = NULL,
                               adjust = NULL,
                               verbose = FALSE) {
-  method <- match.arg(method, c("varian", "sw", "fw", "mip"), several.ok = TRUE)
+  method <- match.arg(method, c("fw", "varian", "sw", "mip"), several.ok = TRUE)
   subutility <- match.arg(subutility)
 
   if (!inherits(x, "demand")) {
@@ -205,6 +209,7 @@ separability_grid <- function(x, partitions,
       separable   = NA,
       conditions  = NA_character_,
       ccei        = NA_real_,
+      z           = NA_real_,
       stage1_pass = NA,
       stage2_pass = NA,
       stage3_pass = NA,
@@ -222,6 +227,7 @@ separability_grid <- function(x, partitions,
       row$separable  <- tst$separable
       row$conditions <- tst$conditions
       row$ccei       <- tst$ccei
+      row$z          <- stage_z(tst)
       for (k in seq_len(min(3L, length(tst$stages)))) {
         row[[paste0("stage", k, "_pass")]] <- tst$stages[[k]]$pass
       }

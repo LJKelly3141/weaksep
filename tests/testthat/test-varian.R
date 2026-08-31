@@ -24,8 +24,12 @@ test_that("stage 1 passes on blockwise Cobb-Douglas data", {
 
 test_that("both subutility routes run and produce a verdict", {
   d <- as_demand(blockwise(), obs, good, price, quantity)
-  a <- weak_separability(d, list(block = c("a", "b")), subutility = "afriat")
-  v <- weak_separability(d, list(block = c("a", "b")), subutility = "divisia")
+  ## method = "varian" is now explicit: the package default is "fw", which has
+  ## its own stage-two construction and ignores `subutility`.
+  a <- weak_separability(d, list(block = c("a", "b")), method = "varian",
+                         subutility = "afriat")
+  v <- weak_separability(d, list(block = c("a", "b")), method = "varian",
+                         subutility = "divisia")
   expect_type(a$separable, "logical")
   expect_type(v$separable, "logical")
   expect_identical(a$stages[[2]]$detail, "afriat")

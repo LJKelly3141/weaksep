@@ -22,19 +22,32 @@
 ## `choose_solver()`.
 milp_solvers <- c("highs", "Rglpk", "lpSolve")
 
+## Solvers that are CORRECT on this model. lpSolve is reported by
+## `mip_solvers()` so a user can see why it is not used, but it is never
+## selected and cannot be requested: it returns incorrect infeasibility on the
+## CS.WS program from twelve observations, and a wrong "not separable" is worse
+## than no answer at all.
+reliable_milp <- c("highs", "Rglpk")
+
 #' Report which mixed integer solvers are available
 #'
 #' `method = "mip"` needs a mixed integer programming solver. This reports which
 #' are installed and which would be chosen.
 #'
-#' `lpSolve` is deliberately the last choice despite being the only one with no
-#' system requirements. On the CS.WS program it returns *incorrect* infeasibility
-#' from roughly twelve observations: on blockwise Cobb-Douglas data that is
-#' separable by construction, and which `Rglpk` correctly solves at every size
-#' tested, `lpSolve` reports infeasible for T of 12 and above. An exact test that
-#' silently says "not separable" when the answer is "separable" is worse than a
-#' slow one, so `lpSolve` is used only when nothing better is installed, and then
-#' with a warning.
+#' `lpSolve` is listed but is never used for the integer programme, and cannot
+#' be requested. On the CS.WS program it returns *incorrect* infeasibility from
+#' twelve observations: on blockwise Cobb-Douglas data that is separable by
+#' construction, and which `Rglpk` correctly solves at every size tested,
+#' `lpSolve` reports infeasible for T of 12 and above. An exact test that says
+#' "not separable" when the answer is "separable" is worse than no answer, so
+#' `method = "mip"` errors when neither `highs` nor `Rglpk` is installed rather
+#' than falling back. It is reported here so the reason is visible.
+#'
+#' Neither reliable solver is a hard dependency, because neither is needed by
+#' the default. `highs` requires CMake to build and `Rglpk` requires the GLPK
+#' system library, and imposing either on every user to support one optional
+#' method is not a trade this package makes. `method = "varian"`, `"fw"` and
+#' every axiom check run with no mixed integer solver at all.
 #'
 #' @return A data frame with one row per solver: `solver`, `installed`,
 #'   `reliable`, and `chosen`.
@@ -48,27 +61,41 @@ mip_solvers <- function() {
                       function(s) requireNamespace(s, quietly = TRUE),
                       logical(1))
   chosen <- rep(FALSE, length(milp_solvers))
-  if (any(installed)) chosen[which(installed)[1]] <- TRUE
+  usable <- which(installed & milp_solvers %in% reliable_milp)
+  if (length(usable)) chosen[usable[1]] <- TRUE
   data.frame(solver = milp_solvers, installed = unname(installed),
-             reliable = milp_solvers != "lpSolve", chosen = chosen,
+             reliable = milp_solvers %in% reliable_milp, chosen = chosen,
              stringsAsFactors = FALSE)
 }
 
 choose_solver <- function(solver = NULL) {
   if (!is.null(solver)) {
     solver <- match.arg(solver, milp_solvers)
+    if (!solver %in% reliable_milp) {
+      stop("solver = ", sQuote(solver), " is not used for the integer ",
+           "programme. It reports incorrect infeasibility on this model from ",
+           "twelve observations, so it would answer \"not separable\" when the ",
+           "answer is \"separable\". Install ",
+           paste(sQuote(reliable_milp), collapse = " or "),
+           "; see ?mip_solvers.", call. = FALSE)
+    }
     if (!requireNamespace(solver, quietly = TRUE)) {
       stop("solver = ", sQuote(solver), " requires the ", solver,
            " package, which is not installed.", call. = FALSE)
     }
     return(solver)
   }
-  avail <- milp_solvers[vapply(milp_solvers,
-                               function(s) requireNamespace(s, quietly = TRUE),
-                               logical(1))]
+  avail <- reliable_milp[vapply(reliable_milp,
+                                function(s) requireNamespace(s, quietly = TRUE),
+                                logical(1))]
   if (!length(avail)) {
-    stop("method = \"mip\" needs a mixed integer solver. Install one of: ",
-         paste(milp_solvers, collapse = ", "), ".", call. = FALSE)
+    stop("method = \"mip\" needs a mixed integer solver that is correct on ",
+         "this model, and none is installed. Install one of: ",
+         paste(reliable_milp, collapse = ", "),
+         ". lpSolve is not an option here: it reports incorrect infeasibility ",
+         "on this program from twelve observations. Every other method in this ",
+         "package, including the default, runs without a mixed integer solver.",
+         call. = FALSE)
   }
   avail[1]
 }
@@ -78,19 +105,6 @@ choose_solver <- function(solver = NULL) {
 solve_milp <- function(n_var, triplets, dir, rhs, binary_idx, solver,
                        obj = NULL) {
   if (is.null(obj)) obj <- numeric(n_var)
-
-  if (solver == "lpSolve") {
-    warning("Using lpSolve for the integer programme. lpSolve reports ",
-            "incorrect infeasibility on this model from about 12 observations. ",
-            "Install 'highs' or 'Rglpk' for a trustworthy result; see ",
-            "?mip_solvers.", call. = FALSE)
-    res <- lpSolve::lp(direction = "min", objective.in = obj,
-                       const.dir = sub("^==$", "=", dir), const.rhs = rhs,
-                       dense.const = triplets,
-                       binary.vec = binary_idx)
-    return(list(status = res$status, solution = res$solution,
-                solver = "lpSolve"))
-  }
 
   mat <- Matrix::sparseMatrix(i = triplets[, 1], j = triplets[, 2],
                               x = triplets[, 3],

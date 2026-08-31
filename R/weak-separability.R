@@ -31,6 +31,53 @@
 #' of Swofford and Whitney (1994), linearised as in Hjertstrand, Swofford and
 #' Whitney. `adjust` names the goods allowed to adjust incompletely.
 #'
+#' @section Choosing a method:
+#'
+#' `"fw"` is the default. Among the sequential tests it is the only one that
+#' both certifies correctly and leaves data that is separable by construction
+#' alone.
+#'
+#' `method = "varian"` with `subutility = "afriat"` is Varian's original
+#' procedure. **It is retained for historical continuity and for replicating
+#' studies that used it, and is not recommended for applied work.** Its stage
+#' two picks one admissible subutility out of infinitely many, and that
+#' arbitrary choice shows up as a measurable rate: it rejects data that is
+#' separable by construction, and its verdict is not invariant to scaling every
+#' price within a period by a common factor, a transformation that leaves the
+#' budget set, and therefore the revealed preference content, unchanged.
+#'
+#' `subutility = "divisia"` is exact on homothetic data and rejects almost
+#' everything off it. The Tornqvist index satisfies Varian's inner inequalities
+#' when the aggregator is homogeneous, which is the case Diewert (1976)
+#' licenses, and rarely otherwise. Where they fail, the construction certifies
+#' nothing, so stage two fails rather than handing stage three a certificate
+#' that does not exist. Prefer it only where homotheticity is defensible;
+#' `"fw"` adjusts the same index minimally until the inequalities do hold.
+#'
+#' @section Measured behaviour:
+#'
+#' Rejection rates over 200 replications per cell, five goods, a three-good
+#' candidate group. Cobb-Douglas utility is additively separable and so weakly
+#' separable in every subset of goods, which makes every rejection in that
+#' column a false rejection. Random data satisfies no restriction at all.
+#'
+#' \tabular{lrrr}{
+#'   \strong{T = 20}  \tab Cobb-Douglas \tab translog \tab random \cr
+#'   varian + afriat  \tab 0.060 \tab 0.635 \tab 1.000 \cr
+#'   varian + divisia \tab 0.000 \tab 1.000 \tab 1.000 \cr
+#'   fw               \tab 0.000 \tab 0.555 \tab 1.000 \cr
+#'   \strong{T = 30}  \tab             \tab          \tab       \cr
+#'   varian + afriat  \tab 0.065 \tab 0.800 \tab 1.000 \cr
+#'   varian + divisia \tab 0.000 \tab 1.000 \tab 1.000 \cr
+#'   fw               \tab 0.000 \tab 0.670 \tab 1.000
+#' }
+#'
+#' Read the translog column carefully. These are sufficient conditions, so a
+#' rejection is not evidence against separability, and on the same T = 20 data
+#' the exact test of Cherchye et al. puts the genuine non-separability rate at
+#' 0.450. Everything the sequential tests reject beyond that is over-rejection,
+#' not power.
+#'
 #' @section What a result licenses:
 #'
 #' The conditions tested by `method = "varian"` are **sufficient but not
@@ -53,7 +100,8 @@
 #' @param partition Named list of character vectors. Each element names the goods
 #'   in one candidate group. Goods named in no group form the outside block.
 #'   Groups must not overlap and must contain at least two goods.
-#' @param method Which test to apply: `"varian"`, `"fw"`, `"mip"` or `"sw"`.
+#' @param method Which test to apply: `"fw"` (the default), `"varian"`,
+#'   `"mip"` or `"sw"`. See the section on choosing a method.
 #' @param efficiency Numeric scalar in `(0, 1]`, the Afriat efficiency level.
 #'   `"mip"` and `"sw"` accept only `1`; the published programmes carry no
 #'   efficiency parameter and this package does not invent one.
@@ -61,6 +109,8 @@
 #'   subutility from the Afriat inequalities (`"afriat"`) or from a chained
 #'   Tornqvist-Theil index (`"divisia"`). Ignored, with a warning, for `"fw"`,
 #'   which has its own construction, and irrelevant to `"mip"` and `"sw"`.
+#'   `"afriat"` is Varian's original and is kept for replication rather than
+#'   recommended; see the section on choosing a method.
 #' @param solver Mixed integer solver for `method = "mip"` and `method = "sw"`,
 #'   one of `"highs"`, `"Rglpk"` or `"lpSolve"`. `NULL` picks the best installed;
 #'   see [mip_solvers()]. Ignored by `"varian"` and `"fw"`.
@@ -93,13 +143,16 @@
 #'
 #' @export
 weak_separability <- function(x, partition,
-                              method = c("varian", "sw", "fw", "mip"),
+                              method = c("fw", "varian", "sw", "mip"),
                               efficiency = 1,
                               subutility = c("afriat", "divisia"),
                               solver = NULL,
                               adjust = NULL,
                               verbose = FALSE) {
   method <- match.arg(method)
+  ## Record this BEFORE match.arg(): assigning to an argument makes missing()
+  ## report FALSE even when the caller supplied nothing.
+  subutility_given <- !missing(subutility)
   subutility <- match.arg(subutility)
   cl <- match.call()
 
@@ -125,7 +178,7 @@ weak_separability <- function(x, partition,
   ## method = "fw" is the same three-stage engine with Fleissig and Whitney's
   ## superlative-index LP supplying stage two, so `subutility` does not apply.
   if (method == "fw") {
-    if (!missing(subutility) && !identical(subutility, "afriat")) {
+    if (subutility_given) {
       warning("`subutility` is ignored for method = \"fw\", which uses its own ",
               "superlative-index construction.", call. = FALSE)
     }

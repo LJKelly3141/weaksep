@@ -18,7 +18,7 @@ test_that("the grid is the full cross of partitions, methods and efficiencies", 
   expect_equal(
     names(out),
     c("partition", "members", "method", "subutility", "efficiency",
-      "separable", "conditions", "ccei", "stage1_pass", "stage2_pass",
+      "separable", "conditions", "ccei", "z", "stage1_pass", "stage2_pass",
       "stage3_pass", "n_obs", "n_goods", "error")
   )
   expect_true(all(out$n_obs == 20L))

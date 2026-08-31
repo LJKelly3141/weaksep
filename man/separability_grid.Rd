@@ -7,7 +7,7 @@
 separability_grid(
   x,
   partitions,
-  method = "varian",
+  method = "fw",
   efficiency = 1,
   subutility = c("afriat", "divisia"),
   solver = NULL,
@@ -57,6 +57,10 @@ columns:
 \item{\code{conditions}}{Whether the verdict is \code{"sufficient"},
 \code{"necessary"}, or \code{"necessary and sufficient"}.}
 \item{\code{ccei}}{The efficiency index reported by the method.}
+\item{\code{z}}{Total stage-two adjustment: how far the superlative index had
+to move to satisfy Varian's inner inequalities. \code{0} means the raw index
+already satisfied them. \code{NA} for methods that produce no such
+quantity.}
 \item{\code{stage1_pass}, \code{stage2_pass}, \code{stage3_pass}}{Per-stage outcomes.}
 \item{\code{n_obs}, \code{n_goods}}{Dimensions of the data.}
 \item{\code{error}}{The error message for a cell that failed, else \code{NA}.}

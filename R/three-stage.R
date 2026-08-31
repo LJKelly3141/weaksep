@@ -23,6 +23,25 @@
 ##   price     numeric T, the composite price 1/delta_t, strictly positive
 ##   ok        logical, whether a construction was found
 ##   detail    character, reported by print()
+## Varian's inner inequality (A): S_t - S_v <= delta_v p_v (q_t - q_v) for all
+## t, v. A stage-two construction that does not satisfy this certifies nothing,
+## however well the reduced system then behaves in stage 3. Returns the largest
+## violation, so <= tolerance means admissible.
+inner_violation <- function(pg, qg, S, delta, efficiency = 1) {
+  cy <- pg %*% t(qg)
+  c1 <- cy - efficiency * diag(cy)    # c1[v, t] = p_v q_t - e p_v q_v
+  slack <- outer(S, S, "-") - t(delta * c1)
+  diag(slack) <- -Inf
+  max(slack)
+}
+
+## Both sides of (A) are O(1) once delta carries the reciprocal of expenditure,
+## so the scale is set by the terms actually present rather than assumed.
+inner_tol <- function(S, delta, pg, qg) {
+  cy <- pg %*% t(qg)
+  1e-8 * max(1, max(abs(S)), max(abs(delta * (cy - diag(cy)))))
+}
+
 stage2_afriat <- function(pg, qg, efficiency) {
   af <- suppressWarnings(afriat_subutility(pg, qg, efficiency = efficiency))
   if (!af$feasible) {
@@ -45,8 +64,26 @@ stage2_divisia <- function(pg, qg, efficiency) {
   ## the standard index-number convention. Licensed as a subutility proxy by
   ## Diewert (1976): the Tornqvist index is superlative, exact for a homogeneous
   ## translog aggregator.
-  list(quantity = s, price = rowSums(pg * qg) / s, ok = TRUE,
-       detail = "divisia")
+  price <- rowSums(pg * qg) / s
+  delta <- 1 / price
+
+  ## "Exact for a homogeneous translog aggregator" is the whole licence, and it
+  ## is conditional. Off homothetic data the raw index routinely fails Varian's
+  ## inner inequalities, measured here at 200 of 200 translog datasets, and
+  ## passing it unchecked to stage 3 produced a `separable = TRUE` labelled
+  ## `conditions = "sufficient"` on a construction that certified nothing: 15 of
+  ## 200 such verdicts were contradicted outright by the exact test. So verify.
+  ## Fleissig and Whitney's LP is the constructive answer to the same problem,
+  ## adjusting the index minimally until the inequalities do hold, which is why
+  ## method = "fw" is the default and what this failure points at.
+  v <- inner_violation(pg, qg, s, delta, efficiency)
+  if (v > inner_tol(s, delta, pg, qg)) {
+    return(list(quantity = NULL, price = NULL, ok = FALSE,
+                detail = paste0("divisia: index violates the inner ",
+                                "inequalities by ", format(signif(v, 3)),
+                                ", so it certifies nothing; use method = \"fw\"")))
+  }
+  list(quantity = s, price = price, ok = TRUE, detail = "divisia")
 }
 
 ## Fleissig and Whitney (2003). Rather than accepting whatever the Afriat
@@ -74,7 +111,11 @@ stage2_fw <- function(pg, qg, efficiency, eps = 1e-6) {
   inc <- rowSums(pg * qg)
 
   cy <- pg %*% t(qg)                  # cy[v, t] = q_v . y_t
-  c1 <- cy - diag(cy)                 # c1[v, t] = q_v (y_t - y_v)
+  ## Varian's inner inequality at efficiency e is
+  ##   S_t - S_v <= delta_v (q_v y_t - e q_v y_v),
+  ## so e enters here and not only in the GARP checks either side. Identical to
+  ## the unrelaxed form at e = 1.
+  c1 <- cy - efficiency * diag(cy)    # c1[v, t] = q_v y_t - e q_v y_v
 
   ## Variables: Qp(1..T), Qn(T+1..2T), delta(2T+1..3T), dp(3T+1..4T), dn(4T+1..5T)
   iQp <- function(t) t
@@ -120,7 +161,7 @@ stage2_fw <- function(pg, qg, efficiency, eps = 1e-6) {
   dl <- sol$solution[2L * tt + seq_len(tt)]
   vstar <- vt + qp - qn
 
-  list(quantity = vstar, price = 1 / dl, ok = TRUE,
+  list(quantity = vstar, price = 1 / dl, ok = TRUE, z = sol$objval,
        detail = paste0("fw, Z = ", format(signif(sol$objval, 3))))
 }
 
@@ -160,6 +201,9 @@ three_stage <- function(d, pt, efficiency, stage2, stage2_label, verbose) {
   agg_p <- agg_q
   s2_pass <- TRUE
   s2_detail <- stage2_label
+  ## Total adjustment across groups. NA for constructions that do not produce
+  ## one, and NA when the stage fails, where it would not mean anything.
+  s2_z <- NA_real_
   for (g in group_names) {
     idx <- pt[[g]]
     res <- stage2(d$p[, idx, drop = FALSE], d$q[, idx, drop = FALSE],
@@ -171,12 +215,14 @@ three_stage <- function(d, pt, efficiency, stage2, stage2_label, verbose) {
     }
     agg_q[, g] <- res$quantity
     agg_p[, g] <- res$price
+    if (!is.null(res$z)) s2_z <- sum(c(s2_z, res$z), na.rm = TRUE)
     ## Report what the construction said, not just which one ran. For fw this
     ## carries Z, the amount the superlative index had to be adjusted.
     s2_detail <- res$detail
   }
   stages[[2]] <- list(name = "Stage 2: subutility", pass = s2_pass,
-                      ccei = NA_real_, detail = s2_detail)
+                      ccei = NA_real_, detail = s2_detail,
+                      z = if (s2_pass) s2_z else NA_real_)
   if (!s2_pass) {
     stages[[3]] <- not_attempted("Stage 3: system GARP")
     return(list(separable = FALSE, stages = stages, ccei = s1_ccei))
